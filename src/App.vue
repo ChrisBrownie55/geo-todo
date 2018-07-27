@@ -16,6 +16,10 @@ export default {
 </script>
 
 <style lang="scss">
+:root {
+  --vue-green: #42b983;
+}
+
 #app {
   font-family: "Avenir", Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
