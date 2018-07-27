@@ -13,6 +13,7 @@
     "start-server": "node server.js"
   },
   "dependencies": {
+    "crossenv": "0.0.2-security",
     "express": "^4.16.3",
     "vue": "^2.5.11",
     "vue-router": "^3.0.1",
