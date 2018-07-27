@@ -26,6 +26,7 @@ server.get("*", (req, res) => {
       renderer.renderToString(app, context, function(err, html) {
         if (err) {
           if (err.code === 404) {
+            console.error(err.stack);
             res.status(404).end("Page not found");
           } else {
             console.error(err.stack);
