@@ -43,5 +43,6 @@ server.get("*", (req, res) => {
   );
 });
 
-server.listen(8080);
-console.log("Server started on port 8080.");
+const port = parseInt(process.env.PORT || 8080);
+server.listen(port);
+console.log(`Server started on port ${port}.`);
