@@ -7,20 +7,34 @@
 </template>
 
 <script>
-import { mapState, mapMutations } from "vuex";
+import { mapState, mapMutations } from 'vuex';
 
 export default {
   methods: {
     loginGoogle() {
-      window.fetch(this.authURL, {
-        method: "POST"
-        // body:
-      });
+      Vue.googleAuth().signIn(
+        googleUser => {
+          console.log(googleUser);
+          window
+            .fetch(this.authURL, {
+              method: 'POST',
+              body: JSON.stringify({
+                token: googleUser.access_token,
+                id: googleUser.id_token,
+                issuedAt: googleUser.first_issued_at,
+                expiresIn: googleUser.expires_in
+              })
+            })
+            .then(response => response.json())
+            .then(json => console.log(json));
+        },
+        error => console.error(error)
+      );
     },
-    ...mapMutations(["updateAuth"])
+    ...mapMutations(['updateAuth'])
   },
   computed: {
-    ...mapState(["authURL"])
+    ...mapState(['authURL'])
   }
 };
 </script>
