@@ -12,7 +12,7 @@ export function createRouter(isAuthorized) {
     routes: [
       { path: "/", component: Home },
       { path: "/login", component: Login },
-      { path: "/todos", component: Todos, requiresAuth: true }
+      { path: "/todos", component: Todos, meta: { requiresAuth: true } }
     ]
   });
   router.beforeEach((to, from, next) => {
