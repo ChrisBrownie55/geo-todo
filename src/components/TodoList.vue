@@ -1,6 +1,6 @@
 <template>
   <ul class='todo-list'>
-    <li v-for='(todo, index) in $props.todoList' :key='index'>
+    <li v-for='(todo, index) in $props.todos' :key='index'>
       <todo-item :checked='todo.checked' :text='todo.string'></todo-item>
     </li>
   </ul>
@@ -15,7 +15,7 @@ export default {
     TodoItem
   },
   props: {
-    todoList: Array
+    todos: Array
   }
 };
 </script>

@@ -1,7 +1,8 @@
 import Vue from "vue";
 import Router from "vue-router";
-import Home from "../components/Home.vue";
-import Login from "../components/Login.vue";
+import Home from "../pages/Home.vue";
+import Login from "../pages/Login.vue";
+import Todos from "../pages/Todos.vue";
 
 Vue.use(Router);
 
@@ -10,7 +11,8 @@ export function createRouter(isAuthorized) {
     mode: "history",
     routes: [
       { path: "/", component: Home },
-      { path: "/login", component: Login }
+      { path: "/login", component: Login },
+      { path: "/todos", component: Todos, requiresAuth: true }
     ]
   });
   router.beforeEach((to, from, next) => {
@@ -29,4 +31,5 @@ export function createRouter(isAuthorized) {
       next(); // make sure to always call next()!
     }
   });
+  return router;
 }
