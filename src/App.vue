@@ -1,28 +1,29 @@
 <template>
-  <div id="app">
-    <img src="./assets/logo.png">
-    <router-link to="/">Home</router-link>
-    <router-link to="/login">Login</router-link>
+  <div id='app'>
+    <img src='./assets/logo.png' />
+    <router-link to='/'>Home</router-link>
+    <button v-if='authenticated'>Logout</button>
+    <router-link v-else to='/login'>Login</router-link>
     <router-view></router-view>
   </div>
 </template>
 
 <script>
+import { mapState } from 'vuex';
+
 export default {
-  name: "app",
-  data() {
-    return {};
-  }
+  name: 'app',
+  computed: mapState(['authenticated'])
 };
 </script>
 
-<style lang="scss">
+<style lang='scss'>
 :root {
   --vue-green: #42b983;
 }
 
 #app {
-  font-family: "Avenir", Helvetica, Arial, sans-serif;
+  font-family: 'Avenir', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;

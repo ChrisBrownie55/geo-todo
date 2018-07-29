@@ -13,9 +13,10 @@
 </template>
 
 <script>
-import { mapGetters } from "vuex";
+import { mapGetters } from 'vuex';
+
 export default {
-  computed: mapGetters(["finishedTodos", "unfinishedTodos"])
+  computed: mapGetters(['finishedTodos', 'unfinishedTodos'])
 };
 </script>
 
