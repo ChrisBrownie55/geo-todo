@@ -1,4 +1,5 @@
 const express = require('express');
+const bodyParser = require('body-parser');
 const server = express();
 const fs = require('fs');
 const path = require('path');
@@ -38,13 +39,27 @@ const fakeUserDatabase = {
   }
 };
 
+server.use(bodyParser.json());
 // start server
 server
   .post('/auth', (req, res) => {
-    res.json({
-      authenticated: true,
-      todos: [{ text: 'a', checked: true }, { text: 'b', checked: false }]
-    });
+    // NOT USING REAL DATABASE GETTING COMMANDS
+    const { username, password } = req.body;
+    const user = fakeUserDatabase[username.toLowerCase()];
+    if (!user) {
+      res.json({
+        error: 'User does not exist'
+      });
+    } else {
+      bcrypt
+        .compare(password, user.password)
+        .then(
+          match =>
+            match
+              ? res.json({ authenticated: true, todoLists: user.todoLists })
+              : res.json({ error: 'Password is incorrect' })
+        );
+    }
   })
   .get('*', (req, res) => {
     bundle.default({ url: req.url }).then(

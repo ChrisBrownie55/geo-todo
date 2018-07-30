@@ -4,8 +4,8 @@
     <h4>or
       <a href='/sign-up'>Sign Up here</a>.</h4>
     <form @submit.prevent='login'>
-      <input type='text' v-bind='username' placeholder='Username' />
-      <input type='password' v-bind='password' placeholder='Password' />
+      <input type='text' v-model='username' placeholder='Username' />
+      <input type='password' v-model='password' placeholder='Password' />
       <button type='submit'>Login Now</button>
     </form>
   </main>
@@ -20,6 +20,10 @@ export default {
       window
         .fetch(this.authURL, {
           method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json'
+          },
           body: JSON.stringify({
             username: this.username,
             password: this.password
