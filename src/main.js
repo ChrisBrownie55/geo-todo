@@ -2,17 +2,18 @@
 import Vue from 'vue';
 import App from './App.vue';
 import { createRouter } from './router/router.js';
-import { Store } from 'vuex';
+import Vuex from 'vuex';
 
 // export a factory function for creating fresh app, router and store
 // instances
 export function createApp() {
+  Vue.use(Vuex);
   // create store
-  const store = new Store({
+  const store = new Vuex.Store({
     state: {
       jwt: null,
       todoLists: [],
-      authURL: `${process.env.URL || 'localhost'}:${process.env.PORT ||
+      authURL: `${process.env.URL || 'http://localhost'}:${process.env.PORT ||
         8080}/auth`,
       authorized: false
     },
@@ -39,7 +40,7 @@ export function createApp() {
 
   const app = new Vue({
     router,
-    state,
+    store,
     // the root instance simply renders the App component.
     render: h => h(App)
   });

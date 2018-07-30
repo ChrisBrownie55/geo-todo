@@ -1,8 +1,13 @@
 <template>
   <main>
     <h1>Login</h1>
-    <h2>Choose your form of authentication</h2>
-    <button @click='loginGoogle'>Login with Google</button>
+    <h4>or
+      <a href='/sign-up'>Sign Up here</a>.</h4>
+    <form @submit.prevent='login'>
+      <input type='text' v-bind='username' placeholder='Username' />
+      <input type='password' v-bind='password' placeholder='Password' />
+      <button type='submit'>Login Now</button>
+    </form>
   </main>
 </template>
 
@@ -11,25 +16,18 @@ import { mapState, mapMutations } from 'vuex';
 
 export default {
   methods: {
-    loginGoogle() {
-      Vue.googleAuth().signIn(
-        googleUser => {
-          console.log(googleUser);
-          window
-            .fetch(this.authURL, {
-              method: 'POST',
-              body: JSON.stringify({
-                token: googleUser.access_token,
-                id: googleUser.id_token,
-                issuedAt: googleUser.first_issued_at,
-                expiresIn: googleUser.expires_in
-              })
-            })
-            .then(response => response.json())
-            .then(json => console.log(json));
-        },
-        error => console.error(error)
-      );
+    login() {
+      window
+        .fetch(this.authURL, {
+          method: 'POST',
+          body: JSON.stringify({
+            username: this.username,
+            password: this.password
+          })
+        })
+        .then(response => response.json())
+        .then(json => console.log(json))
+        .catch(err => console.error(err));
     },
     ...mapMutations(['updateAuth'])
   },
