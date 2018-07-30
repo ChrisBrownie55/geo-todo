@@ -3,20 +3,14 @@ import Vue from 'vue';
 import App from './App.vue';
 import { createRouter } from './router/router.js';
 import { Store } from 'vuex';
-import { GoogleAuth } from 'vue-google-auth';
 
 // export a factory function for creating fresh app, router and store
 // instances
 export function createApp() {
-  Vue.use(GoogleAuth, {
-    clientID: `${process.env.CLIENT_ID}.apps.googleusercontent.com`
-  });
-  Vue.googleAuth.load();
-  Vue.googleAuth.directAccess();
   // create store
   const store = new Store({
     state: {
-      authKey: null,
+      jwt: null,
       todoLists: [],
       authURL: `${process.env.URL || 'localhost'}:${process.env.PORT ||
         8080}/auth`,
@@ -25,7 +19,8 @@ export function createApp() {
     mutations: {
       updateAuth(state, payload) {
         state.authorized = payload.authorized;
-        state.authKey = payload.authKey || null;
+        state.username = payload.username || null;
+        state.jwt = payload.jwt || null;
         state.todoLists = payload.todoLists || [];
       }
     },

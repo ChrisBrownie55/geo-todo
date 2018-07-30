@@ -12,6 +12,31 @@ const renderer = require('vue-server-renderer').createRenderer({
 
 server.use('/dist', express.static(path.join(__dirname, './dist')));
 
+// load database
+const fakeUserDatabase = {
+  chbphone55: {
+    password: 'ZxzChb55',
+    todoLists: [
+      {
+        title: 'Stuff',
+        todos: [
+          { text: 'make this damn authentication work', finished: false },
+          { text: 'break my site', finished: true },
+          { text: 'be happy', finished: false }
+        ]
+      },
+      {
+        title: 'Same stuff',
+        todos: [
+          { text: 'make this damn authentication work', finished: false },
+          { text: 'break my site', finished: true },
+          { text: 'be happy', finished: false }
+        ]
+      }
+    ]
+  }
+};
+
 // start server
 server
   .post('/auth', (req, res) => {
