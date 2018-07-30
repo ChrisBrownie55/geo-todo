@@ -12,10 +12,11 @@ const renderer = require('vue-server-renderer').createRenderer({
 
 server.use('/dist', express.static(path.join(__dirname, './dist')));
 
+const bcrypt = require('bcrypt');
 // load database
 const fakeUserDatabase = {
-  chbphone55: {
-    password: 'ZxzChb55',
+  ['TestUserName'.toLocaleLowerCase()]: {
+    password: bcrypt.hashSync('TestPassword123', 10),
     todoLists: [
       {
         title: 'Stuff',
