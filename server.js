@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const server = express();
+
 const fs = require('fs');
 const path = require('path');
 // obtain bundle
@@ -14,30 +15,49 @@ const renderer = require('vue-server-renderer').createRenderer({
 server.use('/dist', express.static(path.join(__dirname, './dist')));
 
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
+
+const SECRET =
+  process.env.ENCRYPTION_SECRET || 'ccabed93403e9d8828a306de519c23c9';
+const ALGORITHM = process.env.ENCRYPTION_ALGORITHM || 'aes-256-ctr';
+const encrypt = (data, iv) => {
+  const cipher = crypto.createCipheriv(ALGORITHM, SECRET, iv);
+  return cipher.update(data, 'utf8', 'hex') + cipher.final('hex');
+};
+const decrypt = (encryptedData, iv) => {
+  const decipher = crypto.createDecipheriv(ALGORITHM, SECRET, iv);
+  return decipher.update(encryptedData, 'hex', 'utf8') + decipher.final('utf8');
+};
+
 // load database
 const fakeUserDatabase = {
   ['TestUserName'.toLocaleLowerCase()]: {
     password: bcrypt.hashSync('TestPassword123', 10),
-    todoLists: [
-      {
-        title: 'Stuff',
-        todos: [
-          { text: 'make this damn authentication work', finished: false },
-          { text: 'break my site', finished: true },
-          { text: 'be happy', finished: false }
-        ]
-      },
-      {
-        title: 'Same stuff',
-        todos: [
-          { text: 'make this damn authentication work', finished: false },
-          { text: 'break my site', finished: true },
-          { text: 'be happy', finished: false }
-        ]
-      }
-    ]
+    iv: crypto.randomBytes(16)
   }
 };
+
+fakeUserDatabase.testusername.todoLists = encrypt(
+  JSON.stringify([
+    {
+      title: 'Stuff',
+      todos: [
+        { text: 'make this damn authentication work', finished: false },
+        { text: 'break my site', finished: true },
+        { text: 'be happy', finished: false }
+      ]
+    },
+    {
+      title: 'Same stuff',
+      todos: [
+        { text: 'make this damn authentication work', finished: false },
+        { text: 'break my site', finished: true },
+        { text: 'be happy', finished: false }
+      ]
+    }
+  ]),
+  fakeUserDatabase.testusername.iv
+);
 
 server.use(bodyParser.json());
 // start server
@@ -51,14 +71,15 @@ server
         error: 'User does not exist'
       });
     } else {
-      bcrypt
-        .compare(password, user.password)
-        .then(
-          match =>
-            match
-              ? res.json({ authenticated: true, todoLists: user.todoLists })
-              : res.json({ error: 'Password is incorrect' })
-        );
+      bcrypt.compare(password, user.password).then(
+        match =>
+          match
+            ? res.json({
+                authenticated: true,
+                todoLists: JSON.parse(decrypt(user.todoLists, user.iv))
+              })
+            : res.json({ error: 'Password is incorrect' })
+      );
     }
   })
   .get('*', (req, res) => {
