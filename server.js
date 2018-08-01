@@ -29,57 +29,85 @@ const decrypt = (encryptedData, iv) => {
   return decipher.update(encryptedData, 'hex', 'utf8') + decipher.final('utf8');
 };
 
-// load database
-const fakeUserDatabase = {
-  ['TestUserName'.toLocaleLowerCase()]: {
-    password: bcrypt.hashSync('TestPassword123', 10),
-    iv: crypto.randomBytes(16)
-  }
-};
+const { Client } = require('pg');
+const client = new Client({
+  connectionString: process.env.DATABASE_URL,
+  ssl: true
+});
+client.connect();
 
-fakeUserDatabase.testusername.todoLists = encrypt(
-  JSON.stringify([
-    {
-      title: 'Stuff',
-      todos: [
-        { text: 'make this damn authentication work', finished: false },
-        { text: 'break my site', finished: true },
-        { text: 'be happy', finished: false }
-      ]
-    },
-    {
-      title: 'Same stuff',
-      todos: [
-        { text: 'make this damn authentication work', finished: false },
-        { text: 'break my site', finished: true },
-        { text: 'be happy', finished: false }
-      ]
-    }
-  ]),
-  fakeUserDatabase.testusername.iv
-);
+const SqlString = require('sqlstring');
+const jwt = require('jsonwebtoken');
 
-server.use(bodyParser.json());
 // start server
+server.use(bodyParser.json());
 server
-  .post('/auth', (req, res) => {
-    // NOT USING REAL DATABASE GETTING COMMANDS
+  .post('/auth/login', async (req, res) => {
     const { username, password } = req.body;
-    const user = fakeUserDatabase[username.toLowerCase()];
-    if (!user) {
-      res.json({
-        error: 'User does not exist'
-      });
-    } else {
-      bcrypt.compare(password, user.password).then(
-        match =>
-          match
-            ? res.json({
-                authenticated: true,
-                todoLists: JSON.parse(decrypt(user.todoLists, user.iv))
-              })
-            : res.json({ error: 'Password is incorrect' })
+    if (!username || !password) {
+      res.json({ error: 'Missing username or password' });
+      return;
+    }
+
+    const lowerCaseUsername = username.toLocaleLowerCase();
+
+    try {
+      const {
+        rows: [user]
+      } = await client.query(
+        SqlString.format('SELECT * FROM users WHERE username = $1', [
+          lowerCaseUsername
+        ])
       );
+
+      if (!rows.length) {
+        res.status(401).end('User does not exist');
+        return;
+      }
+
+      if (!(await bcrypt.compare(password, user.password))) {
+        res.status(401).end('Password is incorrect');
+        return;
+      }
+
+      res.json({
+        todoLists: JSON.parse(decrypt(user.todoLists, user.iv))
+      });
+    } catch (error) {
+      res.status(401).end('Cannot login');
+    }
+  })
+  .post('/auth/register', async (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      res.end('Missing username or password');
+      return;
+    }
+
+    const lowerCaseUsername = username.toLowerCase();
+    try {
+      const { rows } = await client.query(
+        SqlString.format('SELECT username FROM users WHERE username = $1', [
+          lowerCaseUsername
+        ])
+      );
+      if (rows.length > 0) {
+        res.status(401).end('User already exists');
+        return;
+      }
+
+      const iv = crypto.randomBytes(16);
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const jwt = null; // MAKE A JWT HERE
+
+      await client.query(
+        SqlString.format(
+          'INSERT INTO users (username, password, iv, jwt) VALUES ($1, $2, $3)',
+          [lowerCaseUsername, hashedPassword, iv]
+        )
+      );
+    } catch (error) {
+      res.status(401).end('Cannot register');
     }
   })
   .get('*', (req, res) => {
