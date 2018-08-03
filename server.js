@@ -20,14 +20,23 @@ const crypto = require('crypto');
 const SECRET =
   process.env.ENCRYPTION_SECRET || 'ccabed93403e9d8828a306de519c23c9';
 const ALGORITHM = process.env.ENCRYPTION_ALGORITHM || 'aes-256-ctr';
-const encrypt = (data, iv) => {
+
+function encrypt(data, iv) {
   const cipher = crypto.createCipheriv(ALGORITHM, SECRET, iv);
   return cipher.update(data, 'utf8', 'hex') + cipher.final('hex');
-};
-const decrypt = (encryptedData, iv) => {
+}
+function decrypt(encryptedData, iv) {
   const decipher = crypto.createDecipheriv(ALGORITHM, SECRET, iv);
   return decipher.update(encryptedData, 'hex', 'utf8') + decipher.final('utf8');
-};
+}
+
+const createIV = length => crypto.randomBytes(length);
+const bufferToString = buffer =>
+  Array.from(buffer)
+    .map(hex => String.fromCharCode(hex))
+    .join('');
+const stringToBuffer = string =>
+  Buffer.from(string.split('').map(char => char.charCodeAt(0)));
 
 const { Client } = require('pg');
 const client = new Client({
@@ -38,6 +47,21 @@ client.connect();
 
 const SqlString = require('sqlstring');
 const jwt = require('jsonwebtoken');
+
+let invalidTokens = []; // blacklist
+
+const isTokenExpired = token => new Date(token.exp) <= new Date();
+// validate token and remove expired blacklisted tokens
+function isTokenValid(token) {
+  let isValid = true;
+  invalidTokens = isTokenExpired.reduce((newList, currentToken) => {
+    if (token.username === currentToken.username) {
+      isValid = false;
+    }
+    return isTokenExpired(currentToken) ? newList : newList.push(currentToken);
+  }, []);
+  return isValid && !isTokenExpired(token);
+}
 
 // start server
 server.use(bodyParser.json());
@@ -50,12 +74,12 @@ server
     }
 
     const lowerCaseUsername = username.toLocaleLowerCase();
-
     try {
       const {
-        rows: [user]
+        rows: [user], // get the user
+        rows // get the row
       } = await client.query(
-        SqlString.format('SELECT * FROM users WHERE username = $1', [
+        SqlString.format('SELECT * FROM users WHERE username = ?', [
           lowerCaseUsername
         ])
       );
@@ -70,45 +94,80 @@ server
         return;
       }
 
-      res.json({
-        todoLists: JSON.parse(decrypt(user.todoLists, user.iv))
+      const token = jwt.sign({ lowerCaseUsername }, SECRET, {
+        expiresIn: '1 week'
+      });
+
+      res.status(200).json({
+        todoLists: JSON.parse(decrypt(user.todos, stringToBuffer(user.iv))),
+        token
       });
     } catch (error) {
-      res.status(401).end('Cannot login');
+      res.status(401).json({ error: 'Cannot login' });
+      console.error(error.stack);
     }
   })
   .post('/auth/register', async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) {
-      res.end('Missing username or password');
+      // TODO: find correct HTTP Code for incorrect data
+      res.status().json({ error: 'Missing username or password' });
       return;
     }
 
     const lowerCaseUsername = username.toLowerCase();
     try {
       const { rows } = await client.query(
-        SqlString.format('SELECT username FROM users WHERE username = $1', [
+        SqlString.format('SELECT username FROM users WHERE username = ?', [
           lowerCaseUsername
         ])
       );
+
       if (rows.length > 0) {
-        res.status(401).end('User already exists');
+        res.status(401).json({ error: 'User already exists' });
         return;
       }
 
-      const iv = crypto.randomBytes(16);
+      const iv = createIV(16);
       const hashedPassword = await bcrypt.hash(password, 10);
-      const jwt = null; // MAKE A JWT HERE
+      const token = jwt.sign({ lowerCaseUsername }, SECRET, {
+        expiresIn: '1 week'
+      });
 
       await client.query(
         SqlString.format(
-          'INSERT INTO users (username, password, iv, jwt) VALUES ($1, $2, $3)',
-          [lowerCaseUsername, hashedPassword, iv]
+          'INSERT INTO users (username, password, iv, todos) VALUES (?, ?, ?, ?)',
+          [
+            lowerCaseUsername,
+            hashedPassword,
+            bufferToString(iv),
+            encrypt('[]', iv)
+          ]
         )
       );
+      res.status(200).json({
+        token
+      });
     } catch (error) {
-      res.status(401).end('Cannot register');
+      res.status(401).json({ error: 'Cannot register' });
+      console.error(error.stack);
     }
+  })
+  .post('/auth/todos', async (req, res) => {
+    let { token } = req.body;
+    const { todoLists } = req.body;
+
+    token = jwt.verify(token, SECRET);
+
+    if (!token || !isTokenValid(token)) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+    const twoDaysInMilliseconds = 2 * 24 * 60 * 60 * 1000;
+    if (token.exp - new Date())
+      if (todoLists) {
+        // updating database of user data with edited todoList
+      }
   })
   .get('*', (req, res) => {
     bundle.default({ url: req.url }).then(

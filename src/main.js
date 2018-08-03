@@ -11,7 +11,7 @@ export function createApp() {
   // create store
   const store = new Vuex.Store({
     state: {
-      jwt: null,
+      token: localStorage.getItem('token') || null,
       todoLists: [],
       authURL: `${process.env.URL || 'http://localhost'}:${process.env.PORT ||
         8080}/auth`,
@@ -21,7 +21,8 @@ export function createApp() {
       updateAuth(state, payload) {
         state.authorized = payload.authorized;
         state.username = payload.username || null;
-        state.jwt = payload.jwt || null;
+        state.token = payload.token || null;
+        window.localStorage.setItem('token', payload.token);
         state.todoLists = payload.todoLists || [];
       }
     },
